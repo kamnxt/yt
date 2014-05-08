@@ -30,7 +30,7 @@ def main():
     parser.add_argument("--player",default=MPLAYER_MODE,choices=[MPLAYER_MODE,OMXPLAYER_MODE,MPV_MODE],help="specifies what program to use to play videos")
     parser.add_argument("--novideo", default=False, action='store_true', help="Play selection while suppressing video e.g. Audio only NOTE: This flag is ignored when using omxplayer")
     parser.add_argument("--bandwidth", help="Choose prefered minimum video quality. This value will be prefered video quality and will increment up if chosen setting is unavailable. Example: \"--bandwidth 5\" will try and use codec #5 (240p) and if unavailable, will step up to codec #18 (270p/360p). Valid choices from low to high are \"17, 5, 18, 43\"", type=int)
-    
+
     args = parser.parse_args(sys.argv[1:])
 
     # We are now passing all arguments to the Ui object instead of just the player choice. This allows adding new options.
@@ -149,9 +149,15 @@ class Ui(object):
                 ('v', 'choose index'),
                 ('d', 'download'),
                 ('u', 'user'),
-                ('n', 'toggle novideo'),
         ]
-
+        if self._player == OMXPLAYER_MODE:
+            self._help = self._help + [
+                ('a', 'change audio'),
+        ]
+        
+        self._help = self._help + [   # move novideo to the end since it's longest 
+            ('n', 'toggle novideo'),
+        ]
         # Create the windows
         self._main_win = curses.newwin(h-1,w,1,0)
         self._status_bar = curses.newwin(1,w,0,0)
@@ -253,6 +259,9 @@ class Ui(object):
             if self._novideo:
                 self._status += ' [no video]'
 
+            if self._player == OMXPLAYER_MODE:
+                self._status += ' [audio: '+self._audio+']'
+
             # Update the screen with the new items
             self._update_screen()
 
@@ -317,7 +326,11 @@ class Ui(object):
                 idx = 0
             elif c == ord('n'): # toggle novideo
                 self._novideo = not self._novideo
-
+            elif c == ord('a') and self._player == OMXPLAYER_MODE: # toggle audio mode
+                if self._audio == 'local':
+                    self._audio = 'hdmi'
+                elif self._audio == 'hdmi':
+                    self._audio = 'local'
 
     def _play_video(self, idx):
         # idx is 0-based(!)
